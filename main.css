@@ -53,7 +53,7 @@ body {
 }
 
 .jumbotron {
-  background-image: url("http://www.brendansweeny.com/jumboWO3.jpeg");
+  background-image: url("assets/jumboWO3.jpeg");
   color: white;
   padding: 250px 20px 180px 20px;
   /*background-size: 1600px 900px;*/
@@ -76,7 +76,7 @@ body {
 
 .about {
   padding: 0px 50px 50px 50px;
-  background: url(http://brendansweeny.com/portrait5-2.jpg) no-repeat top center local;
+  background: url("assets/portrait5-2.jpg") no-repeat top center local;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -144,10 +144,6 @@ body {
 
 .social-contact {
     text-align: right;
-}
-
-.social-contact .social-icon:hover {
-  background-color: rgb(21, 67, 96);
 }
 
 .ai-2x {
