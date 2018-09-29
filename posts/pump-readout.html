@@ -1,0 +1,432 @@
+<html><head><title>My Blog</title><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="">
+<meta name="author" content="">
+<!-- Bootstrap core CSS -->
+<link href="../vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!-- Custom fonts for this template -->
+<link rel="stylesheet" href="https://cdn.rawgit.com/jpswalsh/academicons/master/css/academicons.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+<link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+<!-- Custom styles for this template -->
+<link href="../css/clean-blog.min.css" rel="stylesheet">
+<!-- Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script></head><body><nav id="mainNav" class="navbar navbar-expand-lg navbar-light fixed-top"><div class="container"><a href="/index.html" class="navbar-brand">Brendan Sweeny</a><button type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler navbar-toggler-right">Menu<i class="fa fa-bars"></i></button><div id="navbarResponsive" class="collapse navbar-collapse"><ul class="navbar-nav ml-auto"><li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li><li class="nav-item"><a href="../blog.html" class="nav-link">Blog</a></li></ul></div></div></nav><header style="background-image: url(assets/deviceinternals.jpg)" class="masthead"><div class="overlay"></div><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><div class="site-heading"><h1>Building a Turbopump Readout with a Microcontroller</h1><span class="subheading"></span><span class="meta">August 4th, 2018</span></div></div></div></div></header><article><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><p><em>Disclaimer: This post is for informational purposes only. Turbomolecular pumps are expensive and mistreatment can permanently damage them, sometimes violently. If this post inspires you to create something similar please proceed at your own risk.</em></p>
+<h2>Backstory</h2><p>We have an instrument with 495,212 turbo pumps (slight exaggeration, there are only 12). For the most part,
+our variable-temperature selected ion flow tube is separated into &#39;sections&#39; by
+pneumatic gate valves that allow venting and for us to vent one section to atmosphere
+(to switch metal sources, maintenance/cleaning, etc.) while leaving others at high vacuum.
+In addition to knowing how hard turbos are working (e.g. power, temperature, rotation speed)
+when other sections of the instrument are vented, it&#39;s good practice to keep an eye on them whenever an experiment is taking place and gases are flowing. So, it can be frustrating
+when a turbopump in service doesn&#39;t have any control or readout beyond a simple on/off switch...
+like our Pfieffer Splitflow turbopump.</p>
+<p>Our Pfieffer Splitflow turbo was already equipped upon delivery with a Pfieffer TC 110
+Electronic Drive Unit and communicating with that unit is what this project is all about.</p>
+<img src="assets/tc110.jpg" class="img-fluid">
+
+<p>The Pfieffer TC 110.</p>
+<p>For years, the only information we knew about the health and status of the pump
+was whatever we could decipher from the red, yellow, and green LEDs. Essentially it was
+&quot;none&quot; equals power off, red and yellow equals spinning down, and best of all,
+green equals full speed <em>OR</em> spinning up! Now, these pumps are designed to be very robust,
+but I was still quite surprised to learn that green could mean either &quot;ready&quot; or
+&quot;still turning on&quot;. To better monitor this pump, I built a readout specifically for it
+(and the TC 110) here&#39;s how:</p>
+<p>Other than the LEDs, there are two connections, the X3 which came connected to a
+power supply by our supplier, and the PV.can which is an unfamiliar (to me at the time)
+M12 socket.</p>
+<p>The PV.can M12 is included in the TC 110 specifically for the purpose of RS485
+communication with a computer. So the project boils down to this: query the pump using
+it&#39;s ASCII parameter language about the metrics we are interested in (rotation speed,
+temperature, and power).</p>
+<h2>The Pfieffer Vacuum Protocol</h2><p>The Pfieffer Vacuum Protocol for RS485, like many, looks verbose at first glance. It
+is just a string of ASCII characters terminated by a carriage return. Here is a breakdown
+of what those characters mean:</p>
+<img src="assets/pumpparameters.jpg" class="img-fluid">
+
+<p>ASCII string structure for the Pfieffer Vacuum Protocol.</p>
+<p>Using rotation speed as an example, we want to query our pump, and the ASCII string
+would look something like this: <code>0010030902=?107\r</code></p>
+<ul>
+<li><strong>a1 - a0</strong>: the address of the pump being queried, 001</li>
+<li><strong>*, 0</strong>: control command. We only want read access, so 00</li>
+<li><strong>n2 - n0</strong>: the parameter number associated with the actual speed command being sent, 309 (See drive unit manual for commands and associated parameters)</li>
+<li><strong>l1, l0</strong>: the total number of characters in the following data section of the string, 02</li>
+<li><strong>dn - d0</strong>: the data section of the string, =?</li>
+<li><strong>c2 - c0</strong>: the checksum value, 107</li>
+<li><strong>C<sub>R</sub></strong>: carriage return for string termination, \r</li>
+</ul>
+<p>A quick note on the checksum value: The Pfieffer protocol uses a checksum to verify
+the integrity of the message received by checking that the value included matches
+its own internal calculation. Here that value is found by calculating the sum total
+of the ASCII string before checksum and performing 256 % total = checksum.</p>
+<p>Constructing the ASCII strings for temperature (keyword &quot;TempMotor&quot;) and power
+(keyword &quot;DrvPower&quot;) results in <code>0010034602=?108\r</code> and <code>0010031602=?105\r</code>, respectively.</p>
+<p>At this point, you could hookup a computer to the pump drive using a M12 to USB cable
+and check any of these values by sending the corresponding ASCII string. However,
+I wanted a device that would continuously check these values and to package it into
+a similar form-factor as the rest of our turbopump controllers.</p>
+<p>For this project, I used a discontinued Intel Galileo microcontroller because we
+have some lying around, but an Arduino would also work with some minor code tweaks.</p>
+<h2>Parts</h2><p>Other than the microcontroller, other important components used are:</p>
+<ul>
+<li>1x 16x2 LCD Display</li>
+<li>1x MAX 485 RS-485 Breakout Board</li>
+<li>1x breadboard or protoboard</li>
+<li>1x 220 ohm resistor</li>
+<li>1x SD card (if using the Intel Galileo, which has no persistent storage)</li>
+<li>1x male M12 cable. Like <strong><a href="https://smile.amazon.com/uxcell-raight-Connector-Aviation-Electrical/dp/B01NAVIATA/">this one</a></strong></li>
+</ul>
+<h2>Wiring It Up</h2><p>Here is a wiring diagram to help get it put together. It may appear messy, but it&#39;s as simple as
+wiring up a basic 16x2 LCD and a MAX 485 RS-485 breakout board. Plenty of online resources and
+tutorials exit that cover the details of each of those components in more depth.</p>
+<img src="assets/pumpreadoutwiring.jpg" class="img-fluid">
+
+<p>The turbopump readout all wired up and mounted in its enclosure:</p>
+<img src="assets/deviceinternals.jpg" class="img-fluid">
+
+<h2>Software</h2><p>First, let&#39;s simply set up the LCD by importing the library, assigning pins,
+calling the begin function, setting the cursor location, and printing a short message.</p>
+<p>All of this will be performed as part of the initial setup procedure:</p>
+<pre><code class="language-c++">#include &lt;LiquidCrystal.h&gt;
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+void setup() {
+  // Serial to RS485:
+  Serial1.begin(9600);
+  // Serial to USB for debugging
+  Serial.begin(9600);
+
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print(&quot;Starting...&quot;);
+}
+
+void loop() {
+  // Nothing to loop through yet...
+}</code></pre>
+<p>At this point, the program doesn&#39;t do anything but display &quot;Starting...&quot; on the LCD.
+Let&#39;s work on setting up the RS 485. But first, a quick note about the RS-485 communication protocol:</p>
+<p>Like RS-232, RS-485 is a serial protocol that transmits data over three transmission lines:
+ground (GND), transmit (TX), and receive (RX).</p>
+<p>RS-485 transmits data via a differential electric signal over two wires for a higher
+baud rate, longer cable length, and reduced susceptibility to noise than RS-232. Unlike RS-232, RS-485 and RS-422
+are designed for multiple drops on the same two wire cable, hence the multiple possible
+driver addresses in the Pfieffer Vacuum Protocol.</p>
+<p>Unfortunately, the Intel Galileo and Arduino do not support RS-485 natively, so we
+must convert the signal from the UART on the Intel Galileo to RS-485 with the MAX 485 integrated circuit.</p>
+<p>Let&#39;s set that up in the program:</p>
+<pre><code class="language-c++">#include &lt;LiquidCrystal.h&gt;
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+//RS485 Communication control pins
+#define SerialDEpin 9
+#define SerialREpin 10
+
+// Values used for RS485 communication control
+#define READ 0
+#define WRITE 1
+
+void setup() {
+  //...
+
+  //RS485 Communication control pins
+  pinMode(SerialDEpin, OUTPUT);
+  pinMode(SerialREpin, OUTPUT);
+  RS485Mode(READ);
+}
+
+void loop() {
+  // Nothing to loop through yet...
+}</code></pre>
+<p>In the RS-485 protocol, the RE (Receiver Enabled) and DE (Driver Enabled) control
+communication direction. RE is active-low, meaning it must be pulled low to receive and DE is active-high,
+meaning it must be pulled high to send. In this application, which will switch between send
+and receive, they can effectively be tied together.</p>
+<p>Let&#39;s add a helper function that abstracts the mode change:</p>
+<pre><code class="language-c++">// Helper function for changing both RS485 comm pins
+// to receive or transmit
+void RS485Mode(bool mode) {
+  digitalWrite(SerialDEpin, mode);
+  digitalWrite(SerialREpin, mode);
+}</code></pre>
+<h2>The Loop</h2><p>Alright, time to tackle the code that will loop continuously while the device is powered on.
+Sending and receiving messages depends on certain intervals, so we need to keep track of time in
+a relative sense, so store the current runtime:</p>
+<pre><code class="language-c++">void loop() {
+  // Current runtime in ms
+  // Sending of serial messages, LCD value refresh, and &quot;blank&quot; LCD (no new data)
+  // depend on independent update intervals
+  unsigned long currentMillis = millis();
+}</code></pre>
+<p>Based on some trial and error, it seems only one message can be sent to the pump
+at a time (this doesn&#39;t work: &quot;0010030902=?112\r0010034602=?108\r0010031602=?105\r&quot;).
+Therefore, we&#39;ll have to loop through the different messages.</p>
+<p>During each run though the loop, we want to check if we&#39;ve waited longer than the
+defined interval. If we have, change the RS-485 mode to &quot;write&quot;, send a message, increment
+the counter to the next message, wait until the message sends, and switch the mode back to &quot;read&quot;.</p>
+<p>This is the function that I came up with:</p>
+<pre><code>// Used to cycle through messages for Serial.write()
+// It seems that Pfeiffer TC 110 only accepts one message per Serial.write()
+// or the RS485 r/w timing is slightly off,
+// thus queryTurn cycles through messages
+int queryTurn = 0;
+
+unsigned long lastCheckMillis = 0;
+
+void loop() {
+  // Current runtime in ms
+  // Sending of serial messages, LCD value refresh, and &quot;blank&quot; LCD (no new data)
+  // depend on independent update intervals
+  unsigned long currentMillis = millis();
+  // Only one message can be sent at a time to the pump drive it seems
+  // Also, less than or greater than ~20s delay seems to either not send the message
+  // or not give enough time to receive
+  if (currentMillis - lastCheckMillis &gt; interval) {
+    RS485Mode(WRITE);
+    if (queryTurn == 0) {
+      //[P:309] ActualSpd, 0010030902=?112\r
+      Serial1.write(&quot;0010030902=?107&quot;);
+      Serial1.write(endChar);
+      queryTurn++;
+    } else if (queryTurn == 1) {
+      //[P:346] TempMotor, 0010034602=?108\r
+      Serial1.write(&quot;0010034602=?108&quot;);
+      Serial1.write(endChar);
+      queryTurn++;
+    } else if (queryTurn == 2) {
+      //[P:316] DrvPower, 0010031602=?105\r
+      Serial1.write(&quot;0010031602=?105&quot;);
+      Serial1.write(endChar);
+      queryTurn = 0;
+    }
+    // Delay to allow outgoing serial buffer to clear before
+    // switching back to read from RS485
+    // More or less corresponds to length of char array sent
+    delay(17);
+    RS485Mode(READ);
+    lastCheckMillis = currentMillis;
+  }
+}</code></pre><p>Practically speaking, we want to spend as much time as possible listening for messages.
+That&#39;s why there is a small built in delay that&#39;s the approximate length of the message string and
+then the mode is switched back to &quot;read&quot;.</p>
+<p>The second action that the loop should handle is reading and parsing any received messages.</p>
+<p>For this task, the logic is as follows: If a character is received and it&#39;s not the message terminating
+character or would result in the message being longer than expected, store the character as the next value in
+an internal character sequence. If it is the terminating character or would result in the message being
+longer than expected, terminate the internal character sequence.</p>
+<p>It&#39;s a overly specific way of saying copy the message received into an internal data
+structure so we can do something with it.</p>
+<p>This is the function that accomplishes that:</p>
+<pre><code class="language-c++">
+void loop() {
+  if (currentMillis - lastCheckMillis &gt; interval) {
+    //...
+  }
+  // Reads and stores serial message one character per loop
+  // Stores final sentence when endChar is reached
+  readSerial(currentMillis);
+}
+// Reads available serial data and stores values in a char array
+// One for parameters and one for the entire &quot;sentence&quot;
+void readSerial(unsigned long currentMillis) {
+  RS485Mode(READ);
+  if (Serial1.available()) {
+    static int i = 0;
+    char ch = Serial1.read();
+    //Serial.println(ch);
+    if (ch != endChar &amp;&amp; i &lt; sentenceSize - 1) {
+      sentence[i] = ch;
+      i++;
+    } else if (ch == endChar || i == sentenceSize - 1) {
+      sentence[i] = &#39;\0&#39;;
+      i++;
+      while (i &lt; sentenceSize) {
+        sentence[i] = &#39;\0&#39;;
+        i++;
+      }
+      i = 0;
+      // Stores message in respective char sequence
+      strncpy(paramstr, sentence, 10);
+      if (strstr(paramstr, &quot;309&quot;)  &amp;&amp; validCheckSum(sentence)) {
+        strncpy(hzsent, sentence, 20);
+      } else if (strstr(paramstr, &quot;346&quot;)  &amp;&amp; validCheckSum(sentence)) {
+        strncpy(tempsent, sentence, 20);
+      } else if (strstr(paramstr, &quot;316&quot;)  &amp;&amp; validCheckSum(sentence)) {
+        strncpy(powersent, sentence, 20);
+      }
+      newData = true;
+      lastReceivedMillis = currentMillis;
+    }
+  }
+}</code></pre>
+<p>Each time through the loop, <code>readSerial()</code> checks for a new character using Serial&#39;s internal function <code>available()</code>.
+Once the Galileo receives a completed message, it stores it in one of three character
+sequences defined above and indicates that there is &quot;new data&quot; to be dealt with.</p>
+<p>However, the message is only stored if validCheckSum() returns true. The check sum
+behaves the same as the check sum defined in the PFieffer Vacuum Protocol:</p>
+<pre><code class="language-c++">// Sums ASCII values for chars in a char string
+int asciisum(int st, int en) {
+  int asciitotal = 0;
+  for (int i = st; i &lt;= en; i++) {
+    asciitotal = asciitotal + sentence[i];
+  }
+  return asciitotal;
+}
+
+// Makes sure all parameters included in message through the data
+// section equal the checksum value passed at the end of the received message
+bool validCheckSum(char sentence[]) {
+  char checksum[4];
+  strncpy(checksum, sentence + 16, 3);
+  //checksum[3] = &#39;\0&#39;;
+  int intchecksum = atoi(checksum);
+  int modulo = asciisum(0, 15) % 256;
+  return (intchecksum == modulo);
+}</code></pre>
+<p>Okay, we&#39;ve received a new message. Let&#39;s actually do something with it.</p>
+<p>The last task the loop will perform is to check if there is new data. If there is,
+we&#39;ll update the LCD. But what if there isn&#39;t and there hasn&#39;t been for some time?
+This is the case when spinning the turbo down of it the device became disconnected.
+If we only handle updating the display when a new message is received, the device
+will display the last messages received even when the pump is off, so we might be
+convinced it is running when in fact it is off. At best this will result in confusion.
+At worst, the operator may make a decision that could damage the pump.</p>
+<p>A solution would be to add another interval, after which the messages/data are considered
+old and the display cleared.</p>
+<pre><code class="language-c++">void loop() {
+  if (currentMillis - lastCheckMillis &gt; interval) {
+    //...
+  }
+  // Reads and stores serial message one character per loop
+  // Stores final sentence when endChar is reached
+  readSerial(currentMillis);
+  // Updates display/values based on refresh intervals
+  if (newData) {
+    updateLCD();
+    lastLCDUpdateMillis = currentMillis;
+    newData = false;
+  } else if (currentMillis &gt; (clearLCDinterval + lastReceivedMillis)) {
+    displayBlankValues();
+    strcpy(hzsent, &quot;00000000000000-----&quot;);
+    strcpy(tempsent, &quot;00000000000000-----&quot;);
+    strcpy(powersent, &quot;00000000000000-----&quot;);
+  }
+}</code></pre>
+<p>In addition to calling the yet to be defined <code>updateLCD()</code> function when there is
+new data to display, this conditional will display &quot;blank&quot; values on the LCD after
+a certain interval without receiving a new serial message and assign the internal data structures to
+&quot;00000000000000-----&quot;. In the event that the display is updated using this array, such as
+after first turning on the pump but before all three messages have received a response,
+it will display as &quot;--&quot;, which is what we will use for &quot;blank&quot; values on the display.</p>
+<p>The final task that the loop will perform is updating the LCD display when needed.
+This task can be broken into subtasks of moving the cursor and updating the value
+for each of the three parameters we are monitoring:</p>
+<pre><code class="language-c++">void updateLCD() {
+  // Re-initializing the LCD is a band-aid solution for garbage characters
+  // displaying as a result of electronic noise interfering with the LCD
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  // The extra spaces help fully clear old values when the length changes
+  updateValue(hzsent, &quot;Hz: &quot;, &quot;       &quot;);
+  lcd.setCursor(0, 1);
+  updateValue(tempsent, &quot;T: &quot;, &quot;C  &quot;);
+  lcd.setCursor(9, 1);
+  updateValue(powersent, &quot;P: &quot;, &quot;W  &quot;);
+}</code></pre>
+<p>To actually update the value requires a bit more legwork. It&#39;s mostly formatting the
+values, so that they look normal on the LCD. We want to extract the data value from
+the stored message while excluding the leading zeros in the value (e.g. 032 should just be 32).
+Finally, we display/print the label, data, and units on the LCD:</p>
+<p><strong>Side note:</strong> It is not best practice to reinitialize the LCD display each time it updates. However,
+in a lab setting, there is often extra electronic noise, which in our case resulted in
+interference with the LCD and random characters. The easiest solution was to reinitialize the LCD often.
+In the future, It may be worth revisiting this and adding some shielding.</p>
+<pre><code class="language-c++">// Updates a single value on the LCD based on the updateLCD function
+// Units include spaces in order to fully clear old values when length of number drops
+void updateValue(char sentence[], char label[], char units[]) {
+  int datalen = findDataLen(sentence, 10, 15);
+  int leadingZeros = 6 - datalen;
+  char datastr[datalen];
+  strncpy(datastr, sentence + 10 + leadingZeros, datalen);
+  //strncpy(datastr, sentence + 10, 6);
+  datastr[datalen] = &#39;\0&#39;;
+
+  // Prints to an attached computer for diagnostic purposes
+  Serial.print(&quot;hzsent: &quot;);
+  Serial.print(hzsent);
+  Serial.print(&quot;, tempsent: &quot;);
+  Serial.print(tempsent);
+  Serial.print(&quot;, powersent: &quot;);
+  Serial.print(powersent);
+  Serial.print(&quot;, datastr: &quot;);
+  Serial.print(datastr);
+  Serial.print(&quot;, leadingZeros: &quot;);
+  Serial.print(leadingZeros);
+  Serial.print(&quot;, datalen: &quot;);
+  Serial.println(datalen);
+
+  // e.g. &quot;T: &quot;
+  lcd.print(label);
+  lcd.print(datastr);
+  // e.g. &quot;C  &quot;
+  lcd.print(units);
+}
+
+// Finds the length of the data section of the message
+// (not including leading zeros)
+int findDataLen(char sentence[], int st, int en) {
+  int numZeros = 0;
+  for (int i = st; i &lt;= en; i++) {
+    if (sentence[i] == &#39;0&#39;) {
+      numZeros++;
+    } else {
+      return (6 - numZeros);
+    }
+  }
+  // Returns len of 1 when &quot;000000&quot; because we should
+  // return/display one of those zeros on the LCD
+  return 1;
+}</code></pre>
+<p>The readout displaying rotation, temperature, and power values:</p>
+<img src="assets/readoutvalues.jpg" class="img-fluid">
+
+<p>The final function we have yet to define is the behavior that clears the LCD when
+the messages are older than the defined interval. We included the displayBlankValues()
+function in the loop above, but haven&#39;t defined it yet.</p>
+<p>There isn&#39;t much to it:</p>
+<pre><code class="language-c++">// Shows display with blank values
+void displayBlankValues() {
+  lcd.setCursor(0, 0);
+  lcd.print(&quot;Hz: &quot;);
+  lcd.setCursor(4, 0);
+  lcd.print(&quot;--          &quot;);
+  lcd.setCursor(0, 1);
+  lcd.print(&quot;T: &quot;);
+  lcd.setCursor(3, 1);
+  lcd.print(&quot;--C  &quot;);
+  lcd.setCursor(9, 1);
+  lcd.print(&quot;P: &quot;);
+  lcd.setCursor(12, 1);
+  lcd.print(&quot;--W  &quot;);
+}</code></pre>
+<p>We&#39;ll just display &quot;--&quot; where the values would have been.</p>
+<img src="assets/blankvalues.jpg" class="img-fluid">
+
+<p>The readout displaying blank values while the pump is off.</p>
+<p>That&#39;s it! A basic pump readout that allows you to monitor a turbo pump using the
+Pfieffer Vacuum Protocol.</p>
+<p>Check out the complete source code <a href="">here.</a></p>
+<p>To expand on this project, one might consider adding support for reading any errors sent
+by the pump. Right now it is only programmed to display certain types of messages, none of
+which are error messages.</p>
+</div></div></div></article><footer><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><ul class="list-inline text-center"><li class="list-inline-item"><a href="https://www.linkedin.com/in/brendansweeny/" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-linkedin fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://twitter.com/brendan_sweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-twitter fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://scholar.google.com/citations?user=28fLASsAAAAJ&amp;hl=en"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i style="color: white;" class="ai ai-google-scholar fa-stack-1x ai-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://github.com/BrendanSweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-github fa-stack-1x fa-inverse"></i></span></a></li></ul><p class="copyright text-muted">Copyright &copy; Brendan Sweeny 2018</p></div></div></div></footer><!-- Bootstrap core JavaScript -->
+<script src="../vendor/jquery/jquery.min.js"></script>
+<script src="../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Custom scripts for this template -->
+<script src="../js/clean-blog.min.js"></script>
+<!-- Highlighting --><script>hljs.initHighlightingOnLoad(); // syntax highlighting</script></body></html>

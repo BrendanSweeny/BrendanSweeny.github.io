@@ -1,0 +1,20 @@
+{
+  "clusterid": {
+    "title": "Using Python to Identify Clusters in a Mass Spec",
+    "author": "Brendan",
+    "date": "August 28th, 2018",
+    "image": "url(assets/clusterid.gif)"
+  },
+  "pump-readout": {
+    "title": "Building a Turbopump Readout with a Microcontroller",
+    "author": "Brendan",
+    "date": "August 4th, 2018",
+    "image": "url(assets/deviceinternals.jpg)"
+  },
+  "rod-rotator": {
+    "title": "Raspberry Pi Driven Metal Rod Rotator for Laser Vaporization",
+    "author": "Brendan",
+    "date": "July 19th, 2018",
+    "image": "url(assets/rodrotator.jpg)"
+  }
+}

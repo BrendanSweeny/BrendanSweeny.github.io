@@ -1,0 +1,412 @@
+<html><head><title>My Blog</title><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="">
+<meta name="author" content="">
+<!-- Bootstrap core CSS -->
+<link href="../vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!-- Custom fonts for this template -->
+<link rel="stylesheet" href="https://cdn.rawgit.com/jpswalsh/academicons/master/css/academicons.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+<link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+<!-- Custom styles for this template -->
+<link href="../css/clean-blog.min.css" rel="stylesheet">
+<!-- Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script></head><body><nav id="mainNav" class="navbar navbar-expand-lg navbar-light fixed-top"><div class="container"><a href="/index.html" class="navbar-brand">Brendan Sweeny</a><button type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler navbar-toggler-right">Menu<i class="fa fa-bars"></i></button><div id="navbarResponsive" class="collapse navbar-collapse"><ul class="navbar-nav ml-auto"><li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li><li class="nav-item"><a href="../blog.html" class="nav-link">Blog</a></li></ul></div></div></nav><header style="background-image: url(assets/rodrotator.jpg)" class="masthead"><div class="overlay"></div><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><div class="site-heading"><h1>Raspberry Pi Driven Metal Rod Rotator for Laser Vaporization</h1><span class="subheading"></span><span class="meta">July 19th, 2018</span></div></div></div></div></header><article><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><p>The goal of this post is to outline the general behavior of our rod rotator program with
+example code for demonstration. It is not to go through everything line-by-line.
+The project was started by another postdoc. It has been updated, refactored, expanded upon, and maintained by me. For the complete code, see <a href="">here</a>.</p>
+<h2>The Problem</h2><p>Studying the temperature-dependent kinetics of charged metal and metal-oxide nanoclusters
+requires unique instrumentation. Reliably creating charged metal and metal-oxide nanoclusters can
+be a challenge. Thanks to Nobel laureate Richard Smalley&#39;s game-changing laser vaporization
+cluster source, a wide variety of metal and metal oxide clusters can be formed by
+ablating a moving metal target with a high-power laser. In order to couple to existing
+instrumentation, this meant designing our own.</p>
+<p>The source itself involves a pulsed gas flow over a metal rod that is being ablated by a laser.
+The gas expands into the vacuum chamber cooling the metal particles, allowing them to cluster.
+The unique challenge inherent to the metal target is providing a fresh spot of
+metal for each laser pulse (approximately), so what&#39;s needed is motion. We could rotate the
+metal rod, but rotation can only provide a limited number of new &quot;spots.&quot; What
+we really need is rotation and up/down translation of the rod. Further, different metals
+have different conditions that allow for cluster formation, including rod rotation speed.</p>
+<h2>The Solution</h2><p>Our design involves a stepper motor that turns a threaded 1/4-80 rod connected to a magnetic
+vacuum feedthrough, on the other side of which is the metal rod target. Together, the stepper
+motor and threaded rod allow for rotation and translation of the metal target at 80 rotations
+per inch of vertical travel.</p>
+<p>We will need variable rotation and translation speed controlled by pulsing the stepper
+motor at different frequencies, the ability to reverse translation direction,
+and it&#39;s probably a good idea to add some limits on translation
+to prevent the metal rod from translating too far up or down and damaging the apparatus.</p>
+<h2>Parts</h2><ul>
+<li>1 x Stepper Motor</li>
+<li>1 x Raspberry Pi 3</li>
+<li>1 x Half Breadboard</li>
+<li>2 x Limit Switches</li>
+<li>1 x LED</li>
+</ul>
+<p>A diagram of our current solution (Raspberry Pi and circuit not pictured):
+<img src="assets/steppermotordiagram.jpg" class="img-fluid"></p>
+<p>The stepper motor (A) spins the threaded rod (D), which physically connected to
+a magnetic feedthrough (H) that rotates the metal rod inside the vacuum box (I).
+The stepper motor is connected to the Raspberry Pi GPIOs and rests on a vertically
+translating stage (C), whose distance of travel is defined by the limit switches (B),
+which are also connected to the Raspberry Pi. The translating stage itself moves the
+entire stepper motor up and down because of the threaded through hole in the outer can (F).</p>
+<p>How can we control all of this? Using a Raspberry Pi 3 and touchscreen mounted to the side of the instrument.</p>
+<h2>Software and Control Hardware Design</h2><p>For this project, I chose Python and the PyQt5 GUI framework to create an intuitive
+touch application to control the rotation speed, total distance of travel, and alert the
+user to a triggered limit switch. Python was chosen for its relatively quick development time
+readability, the maturity of the PyQt5/Qt framework, and the author&#39;s familiarity.</p>
+<p>Developing and customizing the GUI is as easy as &quot;click and drag&quot; with PyQt5 Designer.</p>
+<p>The current rod rotator GUI:</p>
+<img src="assets/rodrotator.jpg" class="img-fluid">
+
+<p>The resulting interface has all of the inputs necessary to control the direction,
+speed, and stepper motor pulse frequency.</p>
+<p>Let&#39;s create a new .py script with the necessary PyQt5 libraries and a Window class that
+will serve as the main window:</p>
+<pre><code class="language-python">import sys
+import RPi.GPIO as GPIO
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import (QWidget, QApplication, QLabel, qApp,
+                             QLineEdit, QPushButton, QGridLayout)
+import PyQt5.QtCore as QtCore
+from PyQt5.QtCore import QPoint, pyqtSignal, pyqtSlot, Qt
+import PyQt5.QtGui as QtGui
+
+# GUI is imported from MTZv3_ui.py which needs to be in the same directory
+from MTZv3_ui import Ui_Form as Main_Ui
+
+class Window(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Setup the UI
+        self.ui = Main_Ui()
+        self.ui.setupUi(self)
+
+# When widget is run from terminal:
+if __name__ == &quot;__main__&quot;:
+    app = QApplication(sys.argv)
+    window = Window()
+    window.show()
+    sys.exit(app.exec_())</code></pre>
+<h3>How do we control the stepper motor?</h3><p>Basically, what inputs does the stepper motor need?</p>
+<p>The stepper motor needs an input of 3.3 V for each pulse and a separate 3.3 V input
+if it is to rotate in the reverse direction. Additionally, our program must know the
+pulses per revolution specified by the motor (this is variable on our motor, hence the input box).</p>
+<p>So, let&#39;s add the pinouts and program states:</p>
+<pre><code class="language-python">class Window(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Setup the UI
+        self.ui = Main_Ui()
+        self.ui.setupUi(self)
+
+        ### Pin Assignments ###
+
+        # Limit Switches:
+        self.forwardLimitPin = 12
+        self.backwardLimitPin = 19
+
+        # &quot;PUL+&quot;&quot; on Servo Drive (white wire)
+        self.servoPulsePin = 17
+
+        # Pin 27, to &quot;DIR+&quot; on servo drive set to HIGH
+        # Setting this high and PUL+ high reverses stepper direction
+        self.reverseDirectionPin = 27
+
+        # Limit switch activated warning will be triggered on this input:
+        self.limitSwitchWarningPin = 5
+        self.buzzerPin = 23
+
+        # Running LED:
+        self.statusLEDPin = 18
+
+        ### GPIO Setup ###
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(self.forwardLimitPin, GPIO.IN)
+        GPIO.setup(self.backwardLimitPin, GPIO.IN)
+        GPIO.setup(self.servoPulsePin, GPIO.OUT)
+        GPIO.setup(self.reverseDirectionPin, GPIO.OUT)
+        GPIO.setup(self.limitSwitchWarningPin, GPIO.OUT)
+        GPIO.setup(self.buzzerPin, GPIO.OUT)
+        GPIO.setup(self.statusLEDPin, GPIO.OUT)
+
+        ### Program Inital State ###
+
+        self._active = False
+        self.direction = None
+        self.screenLocked = False
+        self.activeButton = None
+
+        # Parameters for Travel:
+        # Minutes per Inch
+        self.MPI = None
+        # Total number of pulses
+        self.e = None
+        # Time between pulses
+        self.sec = None
+        # Limit switch backoff number of pulses
+        self.lsb = None</code></pre>
+<p>When we want to move the stepper motor, all we need to do is set the <code>servoPulsePin</code>
+(and <code>reverseDirectionPin</code>) HIGH at the frequency corresponding to the desired rotation speed</p>
+<p>We&#39;ll use this function to achieve that:</p>
+<pre><code class="language-python"># Function that processes a single stepper motor &#39;step&#39;
+# Called for each &#39;step&#39; that the rod rotates
+def pulseStepperMotorOnce(self, sec):
+    if not self.dev:
+        if self.direction == &#39;forward&#39;:
+            time.sleep(sec)
+            GPIO.output(self.servoPulsePin, GPIO.HIGH)
+            time.sleep(0.0001)
+            GPIO.output(self.servoPulsePin, GPIO.LOW)
+        elif self.direction == &#39;reverse&#39;:
+            time.sleep(sec)
+            GPIO.output(self.reverseDirectionPin,GPIO.HIGH)
+            GPIO.output(self.servoPulsePin, GPIO.HIGH)
+            time.sleep(0.0001)
+            GPIO.output(self.servoPulsePin, GPIO.LOW)
+            GPIO.output(self.reverseDirectionPin, GPIO.LOW)</code></pre>
+<p>In order for us to know how long to wait between pulses of <code>servoPulsePin</code> HIGH
+(the value of <code>sec</code>), we&#39;ll need to calculate it based on the other specified parameters.
+Let&#39;s add a helper function to determine these values from the GUI inputs:</p>
+<pre><code class="language-python"># Uses input field values to calculate the total pulses, total &#39;backoff&#39;,
+# pulses, delay time
+# Called immediately before rod begins rotating
+def calculateParameters(self):
+    # From Frequency Input (Hz):
+    frequencyOptions = [50, 100, 500, 1000, 2500]
+    freqSliderVal = self.ui.frequencySlider.value()
+    # Frequency (Hz):
+    a = int(frequencyOptions[freqSliderVal])
+    # Threads per Inch:
+    b = int(self.ui.lineRodtpi.text())
+    # Pulses per revolution:
+    c = int(self.ui.linePulsePerRev.text())
+    # Distance of travel (inches):
+    lineDistanceOptions = [0.25, 0.5, 0.75, 1, 1.5]
+    distanceSliderVal = self.ui.lineDistanceSlider.value()
+    d = float(lineDistanceOptions[distanceSliderVal])
+    # limit switch backoff:
+    # 0.05 x thread/inch x pulse/rev
+    # ex. 0.05 x 80 x 1,600 = 6,400
+    lsb = 0.05 * b * c
+    # inches x (thread/ 1 inches) x pulses/rev
+    # ex. 1 x 80 x 1600 = 128,000 The total number of pulses
+    e = d * b * c
+    # Used as a wait time between pulses
+    sec = 1 / a
+    # Minutes per inch
+    MPI = (sec * c * (1 / 60) * b) + (0.0001 * b * c * (1 / 60))
+    return MPI, int(e), sec, int(lsb)</code></pre>
+<p>Now that the pulse frequency, threads per inch (80), and distance of travel
+have been specified; and the total number of pulses, delay time between pulses, and
+minutes per inch has been calculated, let&#39;s look at the logic that handles the
+Up or Down direction:</p>
+<pre><code class="language-python">def moveStepperMotor(self, MPI, e, sec, lsb, loop=False):
+    previousFreqValue = self.ui.frequencySlider.value()
+    for index in range(e):
+        if self.ui.frequencySlider.value() != previousFreqValue:
+            self.MPI, self.e, self.sec, self.lsb = self.calculateParameters()
+            self.ui.labelMinutesPerInch.setText(&quot;Minutes per inch = %.2f&quot; %self.MPI)
+            previousFreqValue = self.ui.frequencySlider.value()
+        # Perform a single pulse of the stepper motor:
+        self.pulseStepperMotorOnce(self.sec)
+
+        self.ui.label.setText(&#39;Pulse Count = {0} / {1}&#39;.format(index, self.e))
+        qApp.processEvents()
+
+        if loop:
+            if not self._active and not self.ui.cb_nextTurn.isChecked():
+                self.direction = None
+                break
+        elif not self._active:
+                self.direction = None
+                break
+
+# Initiates rotation in one direction based on &#39;Up&#39; or &#39;Down&#39; button click
+# Also stops rotation if it&#39;s already running and the same button is pressed
+def handleRunOneDirection(self):
+    button = self.sender()
+    if not self._active and not self.activeButton:
+        button.setText(&#39;Stop&#39;)
+        self.activeButton = button
+        self._active = True
+        if button.objectName() == &#39;Down&#39;:
+            self.direction = &#39;forward&#39;
+        elif button.objectName() == &#39;Up&#39;:
+            self.direction = &#39;reverse&#39;
+        # Enables a thread that runs the function being passed
+        QtCore.QTimer.singleShot(0, lambda: self.runOneDirection(button))
+    # If a rotation loop is already running, it stops:
+    elif self._active and button == self.activeButton:
+        self._active = False
+        self.activeButton = None
+
+# helper function that handles some of the required function calls at the
+# beginning of a run. In production, this does more than what&#39;s included
+# below.
+def initiateRun(self):
+    MPI, e, sec, lsb = self.calculateParameters()
+    self.ui.labelMinutesPerInch.setText(&quot;Minutes per inch = %.2f&quot; %MPI)
+    return MPI, e, sec, lsb
+
+# Rotation loop. Terminates when total &#39;steps&#39; is reached
+def runOneDirection(self, button):
+    self.MPI, self.e, self.sec, self.lsb, blinkLED = self.initiateRun()
+
+      # from zero to 128,000 (for example)
+    self.moveStepperMotor(self.MPI, self.e, self.sec, self.lsb)
+
+    if button.objectName() == &#39;Down&#39;:
+        button.setText(&#39;Down&#39;)
+    elif button.objectName() == &#39;Up&#39;:
+        button.setText(&#39;Up&#39;)
+
+    self.resetStates(button)</code></pre>
+<p>The program keeps track of the running state (<code>self._active</code>), the button used to
+initiate rotation (<code>self.button</code>), and the current rotation direction (<code>self.direction</code>)
+for a few different reasons. The first is to prevent the rotation behavior from being initiated
+more than once simultaneously by pressing multiple buttons without stopping the prior rotation.
+Second, it&#39;s so the limit switches are &quot;direction-less&quot;. The motor will back off in the
+opposite direction of travel regardless of how the limit switches are positioned before stopping.</p>
+<p>Speaking of limit switches, why do we even need them?</p>
+<p>We need them because the maximum distance of travel is dictated by the physical size of
+certain components that make up the mechanical rod rotator (e.g. the magnetic feedthrough and
+length of the threaded rod). Allowing the stepper motor to move endlessly in one direction
+would likely destroy the threads on the 1/4-80 rod and potentially damage the motor
+or feed through. Best to avoid that...</p>
+<p>At this point in the program, we&#39;ve already calculated the number of pulses to send to the motor
+that will allow it to rotate in the opposite direction relative to the current direction of travel
+when the limit switch is triggered (<code>lsb</code> in <code>calculateParameters()</code>).</p>
+<p>Let&#39;s add a condition to <code>moveStepperMotor()</code> that checks for a limit switch trigger
+and a function that handles the limit switch behavior:</p>
+<pre><code class="language-python"># Checks to see if either limit switch is pressed. If pressed,
+# backs off switch based on value of self.direction and returns True
+# Renames button based on arguments
+def triggeredLimitSwitch(self, lsb, sec):
+  # If motor hits either limit switch on GPIO 12 or 19:
+  if GPIO.input(self.forwardLimitPin) or GPIO.input(self.backwardLimitPin):
+      if self.direction == &#39;forward&#39;:
+          # Runs motor in reverse to back off the limit switch
+          for index in range(lsb):
+              time.sleep(sec)
+              GPIO.output(self.reverseDirectionPin, GPIO.HIGH)
+              GPIO.output(self.servoPulsePin, GPIO.HIGH)
+              time.sleep(0.0001)
+              GPIO.output(self.servoPulsePin, GPIO.LOW)
+              GPIO.output(self.reverseDirectionPin, GPIO.LOW)
+      elif self.direction == &#39;reverse&#39;:
+          # Runs motor forward to backoff the limit switch
+          for index in range(lsb):
+              time.sleep(sec)
+              GPIO.output(self.servoPulsePin, GPIO.HIGH)
+              time.sleep(0.0001)
+              GPIO.output(self.servoPulsePin, GPIO.LOW)
+
+      # Enables limit switch warning on LCD and outputs to LabVIEW
+      GPIO.output(self.limitSwitchWarningPin, GPIO.HIGH)
+      # Enables buzzer sound
+      GPIO.output(self.buzzerPin, GPIO.HIGH)
+      self.ui.ResetWarning.setStyleSheet(&quot;background-color: red; color: white; font-weight: bold;&quot;)
+      self._active = False
+      self.direction = None
+      return True
+  else:
+      return False
+
+def moveStepperMotor(self, MPI, e, sec, lsb, loop=False):
+    previousFreqValue = self.ui.frequencySlider.value()
+    for index in range(e):
+        # ...
+
+        # Perform a single pulse of the stepper motor:
+        self.pulseStepperMotorOnce(sec)
+
+        # If it doesn&#39;t hit the limit switch:
+        if not self.triggeredLimitSwitch(lsb, sec):
+            self.ui.label.setText(&#39;Pulse Count = {0} / {1}&#39;.format(index, e))
+            qApp.processEvents()
+        else:
+            self.direction = None
+            break
+
+        # ...</code></pre>
+<p>Now the program will check for a HIGH signal on either <code>self.forwardLimitPin</code> or <code>self.backwardLimitPin</code>. If HIGH,
+it will &quot;back off&quot; the limit switch in the opposite direction of travel, set a buzzer output pin HIGH, and
+display a warning on the GUI.</p>
+<p>The last aspect of the program that we need to add is a way to loop over both the &quot;Up&quot; and &quot;Down&quot;
+directions. It&#39;s not very useful to have the metal rod stop moving after a minute or so. We
+want it to rotate back and forth until stopped by a button press. So, we&#39;ll add an additional
+function to handle the looping behavior:</p>
+<pre><code class="language-python"># Intiates forward rotation loop
+def handleRunLoop(self):
+    button = self.sender()
+    if not self._active and not self.activeButton:
+        self._active = True
+        button.setText(&#39;Stop&#39;)
+        self.activeButton = button
+        if button.objectName() == &#39;UpLoop&#39;:
+            QtCore.QTimer.singleShot(0, lambda: self.runLoop(&#39;reverse&#39;, button))
+        elif button.objectName() == &#39;DownLoop&#39;:
+            QtCore.QTimer.singleShot(0, lambda: self.runLoop(&#39;forward&#39;, button))
+    elif self._active and not self.ui.cb_nextTurn.isChecked():
+        if button == self.activeButton:
+            self._active = False
+            self.activeButton = None
+    elif self._active and self.ui.cb_nextTurn.isChecked():
+        if button == self.activeButton:
+            button.setEnabled(False)
+            self._active = False
+            button.setText(&#39;Stopping...&#39;)
+
+# Forward rotation loop. Alternates between forward and backward directions
+def runLoop(self, startDirection, button):
+    self.MPI,self. e, self.sec, self.lsb = self.initiateRun()
+
+    while True:
+
+        # Forward part of loop
+        self.direction = startDirection
+        self.moveStepperMotor(self.MPI, self.e, self.sec, self.lsb, True)
+
+        if not self._active and self.ui.cb_nextTurn.isChecked():
+            self.direction = None
+            break
+
+        # Backward part of loop
+        if startDirection == &#39;forward&#39;:
+            self.direction = &#39;reverse&#39;
+        elif startDirection == &#39;reverse&#39;:
+            self.direction = &#39;forward&#39;
+
+        self.moveStepperMotor(self.MPI, self.e, self.sec, self.lsb, True)
+
+        if not self._active and self.ui.cb_nextTurn.isChecked():
+            self.direction = None
+            break
+
+        if not self._active:
+            self.direction = None
+            break
+
+    if button.objectName() == &#39;DownLoop&#39;:
+        button.setText(&#39;Start Loop (Down)&#39;)
+    elif button.objectName() == &#39;UpLoop&#39;:
+        button.setText(&#39;Start Loop (Up)&#39;)
+
+    self.ui.cb_nextTurn.setChecked(False)
+    self.resetStates(button)</code></pre>
+<p>That&#39;s it! I omitted a few features that can be found in the full source code,
+but at this point, you should have a good idea of the functionality of our Raspberry Pi
+driven metal rod rotator and be able to adapt it to similar applications.</p>
+</div></div></div></article><footer><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><ul class="list-inline text-center"><li class="list-inline-item"><a href="https://www.linkedin.com/in/brendansweeny/" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-linkedin fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://twitter.com/brendan_sweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-twitter fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://scholar.google.com/citations?user=28fLASsAAAAJ&amp;hl=en"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i style="color: white;" class="ai ai-google-scholar fa-stack-1x ai-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://github.com/BrendanSweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-github fa-stack-1x fa-inverse"></i></span></a></li></ul><p class="copyright text-muted">Copyright &copy; Brendan Sweeny 2018</p></div></div></div></footer><!-- Bootstrap core JavaScript -->
+<script src="../vendor/jquery/jquery.min.js"></script>
+<script src="../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Custom scripts for this template -->
+<script src="../js/clean-blog.min.js"></script>
+<!-- Highlighting --><script>hljs.initHighlightingOnLoad(); // syntax highlighting</script></body></html>

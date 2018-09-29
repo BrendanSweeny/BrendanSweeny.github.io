@@ -1,0 +1,7 @@
+!= partial("_blog-header", {heading: "Side Projects.", subheading: "Ancillary adventures in and around the lab", image: "url(https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=b2a93380e2d61894168230dfdb6e99f1&auto=format&fit=crop&w=1350&q=80)"})
+
+div(class="container")
+  div(class="row")
+    div(class="col-lg-8 col-md-10 mx-auto")
+      each article, slug in public.posts._data
+        != partial("_blog-entry", {title: article.title, subtitle: article.subtitle, author: article.author, slug: slug, date: article.date})

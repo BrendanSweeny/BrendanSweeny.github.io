@@ -1,0 +1,100 @@
+!= partial("_header", {heading: "Brendan Sweeny", subheading: "PhD Research Chemist", image: "url(synthesis.jpg)"})
+
+div(class="container")
+  div(class="row")
+    div(class="col-lg-6 col-xs-12 text-center")
+      img(src="portrait-10.png", class="img-responsive" style="width: 300px;")
+    div(class="col-lg-6 col-xs-12 mx-auto")
+      != partial("about-markdown")
+
+  div(class="row", style="padding: 20px 0 20px 0")
+    div(class="col-lg-6 col-xs-12")
+      h1 Research
+
+  div(class="row", style="padding: 0 0 20px 0;")
+    div(class="col-md-6")
+      div(class="well synthesis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
+        img(class="img-responsive", src="synthesis.jpg", style="max-width: 100%; border: 1px solid black;")
+        h3(style="padding: 20px 0 0 0; color: white;") Synthesis
+        p(style="color: white;") Designed photocatalysts with specific physical and electronic properties through interfacing of metals (e.g. Au, Ag, Cu) and semiconductors (e.g. TiO<sub>2</sub>, ZnO, SrTiO<sub>3</sub>, WO<sub>3</sub>, ZrO<sub>2</sub>)
+
+    div(class="col-md-6")
+      div(class="well catalysis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
+        img(class="img-responsive", src="catalysis2.jpg", style="max-width: 100%; border: 1px solid black;")
+        h3(style="padding: 20px 0 0 0; color: white;") Photocatalysis
+        p(style="color: white;") Developed strategies to elucidate enhancement mechanisms in plasmonic photocatalysts involving Fourier-transform infrared spectroscopy, gas chromatography, and photoelectrochemistry
+
+  div(class="row", style="padding: 0 0 20px 0;")
+    div(class="col-md-6")
+      div(class="well synthesis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
+        img(class="img-responsive", src="VAlOsurface.jpg", style="max-width: 100%; border: 1px solid black;")
+        h3(style="padding: 20px 0 0 0; color: white;") Ion-Molecule Kinetics
+        p(style="color: white;") Probed the temperature-dependent kinetics of ion-molecule reactions using a variable-temperature selected-ion flow tube, density functional theory calulcations, and statistical modeling
+
+    div(class="col-md-6")
+      div(class="well synthesis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
+        img(class="img-responsive", src="instrument.jpg", style="max-width: 100%; border: 1px solid black;")
+        h3(style="padding: 20px 0 0 0; color: white;") Instrumentation
+        p(style="color: white;") Currently maintain a variable-temperature selected-ion flow tube mass spectrometer with multiple ion sources (laser vaporization, electrospray, electron impact)
+
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-12 col-xs-12")
+      h1 Selected Publications
+
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-4 col-xs-4 text-center")
+      a(href="http://pubs.acs.org/doi/abs/10.1021/ja504097v", target="_blank")
+        img(class="img-responsive", src="JACS.jpg", style="width: 181px;")
+    div(class="col-lg-4 col-xs-4 text-center")
+      a(href="http://onlinelibrary.wiley.com/doi/10.1002/anie.201404259/abstract", target="_blank")
+        img(class="img-responsive", src="angewchem.jpg")
+    div(class="col-lg-4 col-xs-4 text-center")
+      a(href="http://onlinelibrary.wiley.com/doi/10.1002/chem.201703002/full", target="_blank")
+        img(class="img-responsive", src="chem-euro-j.jpg", style="width: 181px;")
+
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-12 col-xs-12")
+      h1 Custom Software and Hardware
+
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-4 col-xs-4")
+      h3 ClusterID
+      img(class="img-responsive" src="posts/assets/clusterid2.jpg", style="border: 1px solid black; width: 350px")
+    div(class="col-lg-8 col-xs-8")
+      p A GUI tool for identifying charged species, particularly small metal and metal-oxide clusters, in a mass spectrum
+      p.
+        ClusterID allows users to easily identify chemical species by mass and is especially useful for large-mass clusters.
+        Read about it in this #[a(href="./posts/clusterid.html") post].
+      p Written in Python using the PyQt5 GUI framework
+
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-4 col-xs-4")
+      h3 Laser Vap. Rod Rotator
+      img(class="img-responsive" src="posts/assets/rodrotator.jpg", style="border: 1px solid black; width: 350px")
+    div(class="col-lg-8 col-xs-8")
+      p.
+        A touch screen display that controls the rotation and translation
+        behavior for a metal laser ablation target allowing the laser to ablate
+        a fresh spot on the metal surface with each pulse. Read about it in this #[a(href="./posts/rod-rotator.html") post].
+      p.
+        The application runs on a Raspberry Pi 3 and is written in Python using the PyQt5 GUI framework.
+        Translation and rotation are handled by a stepper motor connected to a threaded rod and magnetic vacuum feedthrough
+
+  div(class="row", style="padding: 20px 0px 0px 0px")
+    div(class="col-lg-12 col-xs-12")
+      h3 Turbo Pump Readout for Pfieffer Vacuum Pumps
+  div(class="row", style="padding: 0px 0px 20px 0px")
+    div(class="col-lg-4 col-xs-4")
+      img(class="img-responsive" src="posts/assets/pumpreadout.jpg", style="border: 1px solid black; width: 350px")
+    div(class="col-lg-8 col-xs-8")
+      p.
+        An Intel Galileo-based turbomolecular vacuum pump display that communicates with a
+        Pfieffer split-flow turbo pump via RS-485 and outputs the current rotation speed, temperature, and power
+        for real-time workload monitoring. Read about it in this #[a(href="./posts/pump-readout.html") post].
+      p.
+        Written in C++/Arduino.
+
+  div(class="row")
+    div(class="col-lg-8 col-md-10")
+      a(href="./BrendanSweenyResume.pdf", target="_blank")
+        button(class="btn") #[span(class="fa-stack fa-lg") #[i(class="fa fa-download fa-stack-1x")]] Resume

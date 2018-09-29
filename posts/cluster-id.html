@@ -1,0 +1,444 @@
+<html><head><title>My Blog</title><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="">
+<meta name="author" content="">
+<!-- Bootstrap core CSS -->
+<link href="../vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!-- Custom fonts for this template -->
+<link rel="stylesheet" href="https://cdn.rawgit.com/jpswalsh/academicons/master/css/academicons.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+<link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+<!-- Custom styles for this template -->
+<link href="../css/clean-blog.min.css" rel="stylesheet">
+<!-- Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script></head><body><nav id="mainNav" class="navbar navbar-expand-lg navbar-light fixed-top"><div class="container"><a href="/index.html" class="navbar-brand">Brendan Sweeny</a><button type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler navbar-toggler-right">Menu<i class="fa fa-bars"></i></button><div id="navbarResponsive" class="collapse navbar-collapse"><ul class="navbar-nav ml-auto"><li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li><li class="nav-item"><a href="../blog.html" class="nav-link">Blog</a></li></ul></div></div></nav><h3>Introduction</h3><p>Mass spectrometry is easy, right? The instrument spits out a mass spectrum, the
+user identifies each of the species in the calibrated mass spectrum by
+adding up the masses of the elements until they match the mass of each peak, and
+and everyone goes home happy.</p>
+<p>Often times it works like this. Other times, like when we transitioned to making
+metal and metal-oxide clusters, deciphering the mass spectra became much more difficult.
+Instead of a couple of atoms, we are now concerned with 20+ atoms of multiple elements
+represented by a single peak, and in some cases, multiple isotopes.</p>
+<p>After spending numerous kinetic runs manually adding up the masses for each combination
+or elements I suspected were present, I decided it would be worthwhile to try to
+write a program that can predict the cluster/molecule based on elements selected by
+the user.</p>
+<img src="assets/clusterid.gif" class="img-fluid">
+Selecting elements V, Al and O to identify a peak at 165 amu.
+
+<p>You can see from the above .gif that the user can select the elements they are interested in,
+enter the unknown mass, and the program will try to guess the clusters within a manually
+set absolute tolerance.</p>
+<p>The general structure of ClusterID includes a <code>MainWindow()</code> class that instantiates widgets
+as attributes of the <code>MainWindow()</code> instance. The widgets themselves are smaller
+programs whose purpose is a single &quot;function&quot; such as a periodic table to select
+elements from, or a plot area to display the isotopic distribution of the selected
+clusters.</p>
+<h3>The Periodic Table Widget</h3><p>The idea behind the program is that we can select the elements we suspect are in
+our spectrum by clicking on them in the periodic table. For organizational and modularity reasons,
+we will separate different program functionality into modules (or widgets in the language of Qt).
+To select different elements, we will need to create a periodic table widget.
+Here&#39;s what it will look like in PyQt Designer:</p>
+<img src="assets/periodictable.jpg" class="img-fluid">
+
+<p>Each element is a &quot;checkable&quot; PushButton that will emit a custom signal containing information,
+the mass in particular, to be received by other parts of the program.</p>
+<p>To create the widget, we&#39;ll create a new .py script and include our periodic table UI:</p>
+<pre><code class="language-python">class PeriodicTable(QWidget):
+  def __init__(self):
+    super().__init__()
+
+    self.ui = Ui_PeriodicTable()
+    self.ui.setupUi(self)
+
+if __name__ == &#39;__main__&#39;:
+    app = QApplication(sys.argv)
+    window = PeriodicTable()
+    window.show()
+    sys.exit(app.exec_())</code></pre>
+<p>Great, but the elements mean nothing without data, so we&#39;ll need a way to access
+element-specific information (e.g. mass) when clicked on. We&#39;ll do this by creating
+a dictionary that includes the elemental symbols as keys and elemental information
+as values. For this, I created a simple module containing the elemental data in a class
+called ElementalData, which was previously scraped from the NIST web book. The data is
+in the form of a list of dictionaries:</p>
+<p><code>elementdata.py</code></p>
+<pre><code class="language-python">class ElementData:
+  def __init__(self):
+    self.elements = [
+      {
+        &quot;number&quot;: 1,
+        &quot;mass&quot;: 1.008,
+        &quot;name&quot;: &quot;Hydrogen&quot;,
+        &quot;symbol&quot;: &quot;H&quot;,
+        &quot;mp&quot;: -259.0,
+        &quot;bp&quot;: -253.0,
+        &quot;density&quot;: 0.09,
+        &quot;group&quot;: 1.0,
+        &quot;config&quot;: &quot;1s1&quot;,
+        &quot;IE&quot;: 13.6,
+          &quot;isotopes&quot;: ((1.008, 0.999885), (2.014, 0.000115))
+      },
+      {
+        &quot;number&quot;: 2,
+        &quot;mass&quot;: 4.003,
+        &quot;name&quot;: &quot;Helium&quot;,
+        &quot;symbol&quot;: &quot;He&quot;,
+        &quot;mp&quot;: -272.0,
+        &quot;bp&quot;: -269.0,
+        &quot;density&quot;: 0.18,
+        &quot;group&quot;: 18.0,
+        &quot;config&quot;: &quot;1s2&quot;,
+        &quot;IE&quot;: 24.59,
+          &quot;isotopes&quot;: ((3.016, 0.000001), (4.003, 0.999999))
+      }
+      #...
+    ]</code></pre>
+<p>There is a lot of information here, but for now we will just worry about mass, symbol,
+name, and number. For this, we will parse the relevant information into an object
+for each element:</p>
+<p><code>elements.py</code></p>
+<pre><code class="language-python">class Element:
+    def __init__(self, mass, symbol, name, number):
+        self.mass = mass
+        self.symbol = symbol
+        self.name = name
+        self.number = number</code></pre>
+<p><code>periodictable.py</code></p>
+<pre><code class="language-python">class PeriodicTable(QWidget):
+
+  def __init__(self):
+    super().__init__()
+
+    self.ui = Ui_PeriodicTable()
+    self.ui.setupUi(self)
+
+    self.elements = ElementData().elements
+    self.periodicTable = {}
+
+    for element in self.elements:
+      self.periodicTable[element[&#39;symbol&#39;]] = Element(element[&#39;mass&#39;], element[&#39;symbol&#39;], element[&#39;name&#39;], element[&#39;number&#39;])</code></pre>
+<p>At this point, we have a python dictionary that contains keys representing
+elemental symbols, which correspond to values that are Element objects that contain
+information about the specific element. How do we make this available to other
+parts of the program? That&#39;s where the signals and slots paradigm comes in.</p>
+<h3>PyQt5: Signals and Slots</h3><p>GUI applications are event-driven. When an event takes place (e.g. a button is clicked, a form submitted, a slider changes
+value), PyQt5 can emit a signal. Nothing happens with a signal unless it is connected to
+a slot, a function written to execute some code when the signal is received.</p>
+<p>There are many built in signals in Qt5/PyQt5, such as the signal emitted when a
+button is clicked. In fact, our design will make use of this signal in the following way:</p>
+<ol>
+<li>Element button clicked</li>
+<li>Signal sent (with bool argument representing checked state)</li>
+<li>Signal received by slot</li>
+<li>Slot function retrieves element object based on attributes of the sending button</li>
+<li>Periodic table widget emits custom signal with Element object as argument</li>
+<li>Emitted signal (and element object) can be received by a slot elsewhere in the program</li>
+</ol>
+<p>To connect the &quot;clicked&quot; signal to a slot, we iterate over the buttons:</p>
+<p><code>periodictable.py</code></p>
+<pre><code class="language-python">class PeriodicTable(QWidget):
+
+    def __init__(self):
+        super().__init__()
+
+        # ...
+
+        for element in self.elements:
+            self.periodicTable[element[&#39;symbol&#39;]] = Element(element[&#39;mass&#39;], element[&#39;symbol&#39;], element[&#39;name&#39;], element[&#39;number&#39;])
+
+        # Iterates through all the element buttons (&#39;ebtn&#39;) and adds click
+        # behavior. Naming convention: ebtnMo, ebtnMn, etc.
+        for name in dir(self.ui):
+            subClass = &#39;ebtn&#39;
+            if subClass in name:
+                btn = getattr(self.ui, name)
+                btn.clicked[bool].connect(self.emitElement)
+
+    # Slot for element button clicked signal
+    # Emits custom signal with elemental symbol and boolean
+    def emitElement(self, checked):
+        symbol = self.sender().text()
+        elementObject = self.periodicTable[symbol]
+        self.elementEmitted.emit(elementObject, checked)</code></pre>
+<p>This connects the &quot;clicked&quot; signal for each button (Step 2) to the
+self.emitElement() function (Step 3), which then takes care of passing the
+corresponding element object to our yet-to-be-defined custom signal (Steps 4 &amp; 5).</p>
+<p>To create a custom signal, we import the pyqtSignal object and create
+The signal needs to be added after class declaration but before the constructor,
+as an attribute of the PeriodicTable class:</p>
+<p><code>periodictable.py</code></p>
+<pre><code class="language-python">from PyQt5.QtCore import pyqtSignal
+
+class PeriodicTable(QWidget):
+
+    # Custom signal
+    elementEmitted = pyqtSignal(object, bool)
+
+    def __init__(self):
+        super().__init__()
+        # ...</code></pre>
+<p>The arguments are the Python types that will describe the arguments passed to the
+elementEmitted class attribute.</p>
+<h3>PyQt5: Combining Widgets into a Main Window</h3><p>Alright, great. Now we have this periodic table that emits objects when the buttons
+are pressed. How do we combine that with other widgets/functionality contained in the
+main program?</p>
+<p>First, it&#39;s worth noting that ClusterID is essentially a main window that &quot;loads&quot;
+multiple widgets and allows them to talk to each other (with signal and slots) and
+the functionality found in the main window.</p>
+<p>When an instance of ClusterID is executed, we want the main window to save instances of
+the widgets as attributes:</p>
+<pre><code class="language-python">class MainWindow(QMainWindow):
+
+    formulaEmitted = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+        #...
+
+        self.periodicTableWidget = PeriodicTable()
+        self.massSpecWidget = MassSpec()
+        self.tofView = TofView()
+
+        # Connects symbol emitted from periodicTableWidget to slot
+        self.periodicTableWidget.elementEmitted.connect(self.handleElementClicked)
+
+        self.periodicTableWidget.elementEmitted.connect(self.tofView.handleElementClicked)</code></pre>
+<p>And because we are simply talking about signals and slots, we can connect them just like
+we would if it all took place within a single widget. You&#39;ll see that there is another,
+unintroduced widget (TofView) that I want to be aware of the selected elements.</p>
+<p>Let&#39;s briefly talk about <code>self.handleElementClicked</code>. It is simply a slot for the
+custom signal emitted by the periodic table widget:</p>
+<pre><code class="language-python"># Slot for emitted element symbol and checked boolean from periodicTableWidget
+# Updates list of selected element objects
+def handleElementClicked(self, elementObject, checked):
+    mass = elementObject.mass
+    symbol = elementObject.symbol
+    if checked and elementObject not in self.selectedElements:
+        self.selectedElements.append(elementObject)
+    elif not checked:
+        self.selectedElements.remove(elementObject)</code></pre>
+<p>And all it does is check the status (&#39;checked&#39;) received with the element object
+and add or remove the element from a list based on that status.</p>
+<p>Now that we&#39;ve selected elements that we believe might make up the clusters generating
+the peaks in the mass spectrum, let&#39;s see if we can develop an algorithm that provides,
+at least, a tolerable guess at what it might be.</p>
+<h3>&quot;Find Matches&quot; Algorithm</h3><p>The GUI that handles the find matches algorithm looks like this:</p>
+<img src="assets/findmatches.jpg" class="img-fluid">
+
+<p>After selecting elements, the user will enter the target mass,
+(the mass of the unknown cluster), define a tolerance, click the find matches button,
+and marvel at the tabulated results.</p>
+<p>The function that coordinates all of this is: <code>self.handleFindMatches()</code>.</p>
+<p>The handleFindMatches function handles each step of the match generation process.
+The first step is to get the atomic masses for each of the selected elements,
+which are sorted my mass:</p>
+<pre><code class="language-python">def handleFindMatches(self):
+    # Find elemental masses for element list populated by pushbuttons
+    sortedElementObjects = sorted(self.selectedElements, key=attrgetter(&#39;mass&#39;), reverse=True)
+
+    sortedMasses = [element.mass for element in sortedElementObjects]</code></pre>
+<p>Next, we will initialize a &quot;combination template&quot;. These values will ultimately be
+used as subscripts for the possible molecules that match the target mass
+(e.g. [3, 3, 2] for V<sub>3</sub>Al<sub>3</sub>O<sub>2</sub>).</p>
+<p>The next section is the heart of the handleFindMatches function. Here we iterate
+through all combinations of elements and return the ones that match the target mass
+(within a specified amu tolerance) in the form of a list of sets. Each set represents
+a theoretical combination of elements with a matching mass.</p>
+<pre><code class="language-python">def handleFindMatches(self):
+
+    # ...
+
+    allanswers = findMatch.recursiveFindCombinations(self.targetVal, sortedMasses, self.absoluteTolerance, combination=combinationTemplate, answer=set())</code></pre>
+<p>The next few lines deal with sorting and presenting the results:</p>
+<pre><code class="language-python">def handleFindMatches(self):
+
+    # ...
+
+    # Sort answers by total atoms
+    sortedallanswers = sorted(allanswers, key=sum)
+
+    # Create list of dicts and populate with first 20 answers (by lowest
+    # total atoms), pct dif from target, and precise mass
+    answerDicts = []
+    for answer in sortedallanswers[:]:
+        preciseMass = findMatch.findPreciseMassFromCombination(answer, sortedMasses)
+        pctDif = utils.findPercentDifference(preciseMass, self.targetVal)
+        answerDict = {}
+        formula = &#39;&#39;
+        for index in range(len(answer)):
+            if answer[index] &gt; 0:
+                formula = formula + sortedElementObjects[index].symbol + str(answer[index])
+        answerDict[&#39;formula&#39;] = formula
+        answerDict[&#39;part&#39;] = answer
+        answerDict[&#39;pctDif&#39;] = pctDif
+        answerDict[&#39;preciseMass&#39;] = preciseMass
+        answerDict[&#39;uniqueElements&#39;] = findMatch.findNumberOfElements(answer)
+        answerDict[&#39;atomSum&#39;] = sum(answer)
+        answerDicts.append(answerDict)
+
+    # Sort by number of unique elements, then total number of atoms
+    sortedUniqueElementsAndSum = sorted(answerDicts, key=itemgetter(&#39;atomSum&#39;, &#39;uniqueElements&#39;))</code></pre>
+<p>First, the results are sorted by total atoms since it&#39;s an easy way to weed out unlikely
+clusters/molecules. For example, searching for a cluster consisting of Al, V, O, and/or H
+at mass 168 would yield sensible answers like VAl<sub>2</sub>O<sub>4</sub> and nonsensical answers like, OH<sub>151</sub>
+and H<sub>167</sub>. By sorting by total atoms, obvious nonsense clusters will show up at the bottom of
+the list. In the future, it may be prudent to add basic bonding limits to reduce nonsensical
+answers. The keen-eyed reader may have noticed the filter line edit in the above image, but
+for the sake of brevity, it is not included here.</p>
+<p>Underneath it all, what is the algorithm being used to find all of the combinations?</p>
+<p>At its most basic, the question that the algorithm answers is: In what ways can we partition
+a number (the target mass) using a set of smaller numbers (the masses of the selected elements)?
+In other words, what are all the possible combinations?</p>
+<p>My approach was a recursive function that iterates through each combination that adds to
+the target mass within a defined tolerance:</p>
+<pre><code class="language-python"># Finds all possible ways to partition the target value
+# with the values contained in a list.
+# Recursively finds each combination by incrementing last value in list by +1 until no remainder,
+# then increments the second to last by +1, etc.
+
+# Returns a set of sets (each being a suitable combination)
+def recursiveFindCombinations(target, numList, tol, depth=0, combination=[], answer=set()):
+  if numList != []:
+    maxIons = int(target // numList[0]) + 1
+
+    # Adds an additional multiple of the current value for each iteration
+    for i in range(0, maxIons + 1):
+
+      # Most target values will be integers. This allows for some tolerance between precise atomic
+      # masses and imprecise target value
+      if abs(target - numList[0] * i) &lt;= tol:
+        remainder = 0
+      else:
+        remainder = target - (numList[0] * i)
+      combination[depth] = i
+
+      # Terminating case: when the target is matched, combo list is copied
+      if numList[1:] == [] and remainder == 0:
+        answer.add(tuple(combination[:]))
+
+      # Recursion: calls the function for the next value in numList
+      recursiveFindCombinations(remainder, numList[1:], tol, depth + 1, combination, answer=answer)
+  return answer</code></pre>
+<p>To begin, the function takes six arguments:</p>
+<ol>
+<li>The target mass</li>
+<li>A list of floats corresponding to the masses of the selected elements</li>
+<li>The absolute tolerance</li>
+<li>The recursion depth</li>
+<li>A list representing the number of each element in a combination of elements</li>
+<li>A set of answers that will ultimately be returned by the function</li>
+</ol>
+<p>The first thing our function does is determines the max number of the first element in
+<code>numList</code> that could possibly be contained in a cluster with the mass equal to <code>target</code>.</p>
+<p>It proceeds to iterate over the range of the maximum number of atoms for that element.
+During each iteration (which can be thought of as adding one more of that atom to the total mass),
+it checks to see if the new value is within the defined tolerance and if it is,
+the remainder is considered to be zero and the combination is added to the answer set.</p>
+<p>In this algorithm, the recursive depth can be thought of as a single element, where depth = 0
+corresponds to one element and depth = 1 corresponds to a different selected element. Because
+of this, depth is also used as the index of the combination list being built, hence
+<code>combination[depth] = i</code>.</p>
+<p>The terminating case of the recursive function is triggered when we&#39;ve been through
+every selected element represented in <code>numList</code> and there is no remainder.</p>
+<p>Trying a &quot;simple&quot; example like selecting H and O and using 18 amu (H<sub>2</sub>O) as a target,
+we would see the following values right before the recursive call:</p>
+<pre><code class="language-python"># Depth of 1 (first time through, i = 0):
+remainder:  18.0, numList[1:]:  [1.008], depth + 1:  1, combination:  [0, 0], answer:  set()
+
+# Depth of 2 (adding hydrogens from 0 to 17):
+remainder:  18.0, numList[1:]:  [], depth + 1:  2, combination:  [0, 0], answer:  set()
+remainder:  16.992, numList[1:]:  [], depth + 1:  2, combination:  [0, 1], answer:  set()
+remainder:  15.984, numList[1:]:  [], depth + 1:  2, combination:  [0, 2], answer:  set()
+remainder:  14.975999999999999, numList[1:]:  [], depth + 1:  2, combination:  [0, 3], answer:  set()
+remainder:  13.968, numList[1:]:  [], depth + 1:  2, combination:  [0, 4], answer:  set()
+remainder:  12.96, numList[1:]:  [], depth + 1:  2, combination:  [0, 5], answer:  set()
+remainder:  11.952, numList[1:]:  [], depth + 1:  2, combination:  [0, 6], answer:  set()
+remainder:  10.943999999999999 , numList[1:]:  [], depth + 1:  2, combination:  [0, 7], answer:  set()
+remainder:  9.936, numList[1:]:  [], depth + 1:  2, combination:  [0, 8], answer:  set()
+remainder:  8.928, numList[1:]:  [], depth + 1:  2, combination:  [0, 9], answer:  set()
+remainder:  7.92, numList[1:]:  [], depth + 1:  2, combination:  [0, 10], answer:  set()
+remainder:  6.911999999999999, numList[1:]:  [], depth + 1:  2, combination:  [0, 11] , answer:  set()
+remainder:  5.904, numList[1:]:  [], depth + 1:  2, combination:  [0, 12], answer:  set()
+remainder:  4.896000000000001, numList[1:]:  [], depth + 1:  2, combination:  [0, 13], answer:  set()
+remainder:  3.888, numList[1:]:  [], depth + 1:  2, combination:  [0, 14], answer:  set()
+remainder:  2.879999999999999, numList[1:]:  [], depth + 1:  2, combination:  [0, 15], answer:  set()
+remainder:  1.8719999999999999, numList[1:]:  [], depth + 1:  2, combination:  [0, 16], answer:  set()
+remainder:  0, numList[1:]:  [], depth + 1:  2, combination:  [0, 17], answer:  {(0, 17)}
+
+# Depth of 2 (18 hydrogens is also within tolerance):
+remainder:  0, numList[1:]:  [], depth + 1:  2, combination:  [0, 18], answer:  {(0, 17), (0, 18)}
+
+# Depth of 1 (first time an oxygen is added):
+remainder:  2.0009999999999994, numList[1:]:  [1.008], depth + 1:  1, combination:  [1, 18], answer:  {(0, 17), (0, 18)}
+
+# Depth of 2 (one H and one O are within tolerance, barely):
+remainder:  2.0009999999999994, numList[1:]:  [], depth + 1:  2, combination:  [1, 0], answer:  {(0, 17), (0, 18)}
+remainder:  0, numList[1:]:  [], depth + 1:  2, combination:  [1, 1], answer:  {(0, 17), (1, 1), (0, 18)}
+
+# Depth of 2 (an additional H is added to make H2O)
+remainder:  0, numList[1:]:  [], depth + 1:  2, combination:  [1, 2], answer:  {(0, 17), (1, 1), (0, 18), (1, 2)}
+
+# Depth of 1 (adding another O would result in too high a mass relative to target):
+# Following this iteration, the answer set is returned.
+remainder:  -13.998000000000001, numList[1:]:  [1.008], depth + 1:  1, combination:  [2, 2], answer:  {(0, 17), (1, 1), (0, 18), (1, 2)}</code></pre>
+<p>The returned set contains tuples that correspond to H<sub>17</sub>, OH, H<sub>18</sub>, and O<sub>1</sub>H<sub>2</sub>, respectively.</p>
+<p>The set, <code>{(0, 17), (1, 1), (0, 18), (1, 2)}</code> is what is returned in the above,</p>
+<pre><code>allanswers = findMatch.recursiveFindCombinations(self.targetVal, sortedMasses, self.absoluteTolerance, combination=combinationTemplate, answer=set())</code></pre><p>All that&#39;s left is to format the tuples into something resembling a chemical formula
+and display it.</p>
+<h3>Display Matches in a Table</h3><p>To present the results in the table, we will first create a new function: <code>showMatches()</code></p>
+<pre><code class="language-python"># Function that populates the table with rows to be returned for the find matches functionality
+# elementObjects: a list of objects repesenting elements in the periodic table
+# matchList: a set of sets (each set is a suitable combination)
+def showMatches(self, matchList, tableWidget, pctDif):
+  for i in range(len(matchList)):
+      if matchList[i][&#39;formula&#39;]:
+          # Adds &lt;sub&gt; tags to the formula string
+          matchString = utils.formatFormula(matchList[i][&#39;formula&#39;])
+          tableWidget.setCellWidget(i, 0, QLabel(matchString))
+          # Uses the modified QTableWidgetItem with updated sorting method
+          preciseMassTableItem = NumericTableItem(str(round(matchList[i][&#39;preciseMass&#39;], 5)))
+          # Sets data to the float value of precise mass for sorting reasons
+          preciseMassTableItem.setData(Qt.UserRole, matchList[i][&#39;preciseMass&#39;])
+          tableWidget.setItem(i, 1, preciseMassTableItem)
+          if pctDif:
+              pctDifTableItem = NumericTableItem(str(round(matchList[i][&#39;pctDif&#39;], 5)) + &#39;%&#39;)
+              pctDifTableItem.setData(Qt.UserRole, matchList[i][&#39;pctDif&#39;])
+              tableWidget.setItem(i, 2, pctDifTableItem)
+              self.addBtn = QPushButton(&#39;Add&#39;)
+              self.addBtn.clicked.connect(lambda: self.handleCellButton(tableWidget))
+              tableWidget.setCellWidget(i, 3, self.addBtn)
+          else:
+              self.addBtn = QPushButton(&#39;Add&#39;)
+              self.addBtn.clicked.connect(lambda: self.handleCellButton(tableWidget))
+              tableWidget.setCellWidget(i, 2, self.addBtn)</code></pre>
+<p>For each object in the matchList, we will jump through a hoop or two to get the formula
+to display with the proper subscript formatting since <code>QTableWidgetItem</code>s do not support rich text.
+To acheive this we will:</p>
+<ol>
+<li>Format the formula with <code>&lt;sub&gt;&lt;/sub&gt;</code> tags</li>
+<li>Set the text of a QLabel object to the rich-text-formatted formula string</li>
+<li>Insert the QLabel object into the table widget cell.</li>
+</ol>
+<p>Additionally, I rewrote the sorting function for the QTableWidgetItem. It&#39;s default behavior
+is to sort the values as a string, meaning that 1, 2, 3, 4, 11, 22, 33 would sort to
+1, 11, 2, 22, 3, 33, 4, which is obviously not what we want when sorting by smallest
+difference between target mass and the masses of the matched clusters. The NumericTableItem
+now looks like this:</p>
+<pre><code class="language-python"># Redefined &#39;less than&#39; function for QTableWidgetItem that allows data stored
+# as integer (rather than string) to be used when sorting by column
+class NumericTableItem(QTableWidgetItem):
+    def __lt__(self, other):
+        return (self.data(Qt.UserRole) &lt; other.data(Qt.UserRole))</code></pre>
+<p>Each cell for a matched cluster that represents a numeric value (e.g. percent
+difference, mass, etc.) will display the value in the table as a string type,
+but we will assign the data attribute to the corresponding value as a float/int type.
+It is these data attributes that will be sorted when the user clicks the column heading.</p><footer><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><ul class="list-inline text-center"><li class="list-inline-item"><a href="https://www.linkedin.com/in/brendansweeny/" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-linkedin fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://twitter.com/brendan_sweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-twitter fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://scholar.google.com/citations?user=28fLASsAAAAJ&amp;hl=en"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i style="color: white;" class="ai ai-google-scholar fa-stack-1x ai-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://github.com/BrendanSweeny"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-github fa-stack-1x fa-inverse"></i></span></a></li></ul><p class="copyright text-muted">Copyright &copy; Brendan Sweeny 2018</p></div></div></div></footer><!-- Bootstrap core JavaScript -->
+<script src="../vendor/jquery/jquery.min.js"></script>
+<script src="../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Custom scripts for this template -->
+<script src="../js/clean-blog.min.js"></script>
+<!-- Highlighting --><script>hljs.initHighlightingOnLoad(); // syntax highlighting</script></body></html>
