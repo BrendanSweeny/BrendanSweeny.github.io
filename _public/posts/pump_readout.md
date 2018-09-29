@@ -14,7 +14,7 @@ like our Pfieffer Splitflow turbopump.
 Our Pfieffer Splitflow turbo was already equipped upon delivery with a Pfieffer TC 110
 Electronic Drive Unit and communicating with that unit is what this project is all about.
 
-<img src="assets/tc110.jpg" class="img-fluid">
+<img src="assets/tconeten.jpg" class="img-fluid">
 
 The Pfieffer TC 110.
 
