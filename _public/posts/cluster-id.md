@@ -1,6 +1,6 @@
 ### Introduction
 
-Mass spectrometry is easy, right? The instrument spits out a mass spectrum, the
+Analyzing a mass spectrum is easy, right? The instrument spits out a mass spectrum, the
 user identifies each of the species in the calibrated mass spectrum by
 adding up the masses of the elements until they match the mass of each peak, and
 and everyone goes home happy.

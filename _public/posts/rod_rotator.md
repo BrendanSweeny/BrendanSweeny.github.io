@@ -1,6 +1,6 @@
 The goal of this post is to outline the general behavior of our rod rotator program with
 example code for demonstration. It is not to go through everything line-by-line.
-The project was started by another postdoc. It has been updated, refactored, expanded upon, and maintained by me. For the complete code, see [here]().
+The project was originally developed by another postdoc, Oscar Martinez. It has been updated, refactored, expanded upon, and maintained by me. For the complete code, see [here]().
 
 ## The Problem
 
