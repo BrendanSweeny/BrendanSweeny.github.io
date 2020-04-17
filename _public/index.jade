@@ -27,9 +27,9 @@ div(class="container")
   div(class="row", style="padding: 0 0 20px 0;")
     div(class="col-md-6")
       div(class="well synthesis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
-        img(class="img-responsive", src="VAlOsurface.jpg", style="max-width: 100%; border: 1px solid black;")
-        h3(style="padding: 20px 0 0 0; color: white;") Ion-Molecule Kinetics
-        p(style="color: white;") Probed the temperature-dependent kinetics of ion-molecule reactions using a variable-temperature selected-ion flow tube, density functional theory calulcations, and statistical modeling
+        img(class="img-responsive", src="Al13.jpg", style="max-width: 100%; border: 1px solid black;")
+        h3(style="padding: 20px 0 0 0; color: white;") Chemical Kinetics
+        p(style="color: white;") Probed the temperature-dependent kinetics of ion/nanocluster reactions with neutral molecules using a selected-ion flow tube, density functional theory calulcations, and statistical modeling
 
     div(class="col-md-6")
       div(class="well synthesis", style="background: grey; border: 1px solid black; padding: 20px; border-radius: 3px;")
@@ -39,33 +39,59 @@ div(class="container")
 
   div(class="row", style="padding: 20px 0px 20px 0px")
     div(class="col-lg-12 col-xs-12")
-      h1 Select Publications
+      h1 Selected Publications
 
-  div(class="row", style="padding: 20px 0px 20px 0px")
-    div(class="col-lg-4 col-xs-4 text-center")
+  div(class="row", style="padding: 20px 0px 0px 0px")
+    div(class="col-lg-4 col-xs-4 text-center", style="padding: 20px 0px 0px 0px")
       a(href="http://pubs.acs.org/doi/abs/10.1021/ja504097v", target="_blank")
         img(class="img-responsive", src="JACS.jpg", style="width: 181px;")
-    div(class="col-lg-4 col-xs-4 text-center")
+    div(class="col-lg-4 col-xs-4 text-center", style="padding: 20px 0px 0px 0px")
       a(href="http://onlinelibrary.wiley.com/doi/10.1002/anie.201404259/abstract", target="_blank")
         img(class="img-responsive", src="angewchem.jpg")
-    div(class="col-lg-4 col-xs-4 text-center")
+    div(class="col-lg-4 col-xs-4 text-center", style="padding: 20px 0px 0px 0px")
       a(href="http://onlinelibrary.wiley.com/doi/10.1002/chem.201703002/full", target="_blank")
         img(class="img-responsive", src="chem-euro-j.jpg", style="width: 181px;")
+        
+  div(class="row", style="padding: 0px 0px 20px 0px")
+    div(class="col-lg-6 col-xs-6 text-center", style="padding: 20px 0px 0px 0px")
+      a(href="https://pubs.acs.org/doi/abs/10.1021/acs.jpca.9b03552", target="_blank")
+        img(class="img-responsive", src="jpca.jpg", style="width: 181px;")
+    div(class="col-lg-6 col-xs-6 text-center", style="padding: 20px 0px 0px 0px")
+      a(href="https://onlinelibrary.wiley.com/doi/abs/10.1002/cphc.201800714", target="_blank")
+        img(class="img-responsive", src="jpcl.gif", style="width: 220px;")
+    div(class="col-lg-12 col-xs-12", style="padding: 20px 0px 0px 20px")
+      a(href="https://scholar.google.com/citations?user=28fLASsAAAAJ&hl=en", target="_blank")
+        p Click here for full publication list.
 
-  div(class="row", style="padding: 20px 0px 20px 0px")
+  div(class="row", style="padding: 0px 0px 20px 0px")
     div(class="col-lg-12 col-xs-12")
       h1 Custom Software and Hardware
 
   div(class="row", style="padding: 20px 0px 20px 0px")
     div(class="col-lg-4 col-xs-4")
       h3 ClusterID
-      img(class="img-responsive" src="./posts/assets/clusterid.jpg", style="border: 1px solid black; width: 350px")
+      img(class="img-responsive" src="./posts/assets/clusterid2.jpg", style="border: 1px solid black; width: 350px")
     div(class="col-lg-8 col-xs-8")
       p A GUI tool for identifying charged species, particularly small metal and metal-oxide clusters, in a mass spectrum
       p.
         ClusterID allows users to easily identify chemical species by mass and is especially useful for large-mass clusters.
         Read about it in this #[a(href="./posts/clusterid.html") post].
-      p Written in Python using the PyQt5 GUI framework
+      p Written in Python using the PyQt5 GUI framework.
+  
+  div(class="row", style="padding: 20px 0px 20px 0px")
+    div(class="col-lg-4 col-xs-4")
+      h3 WatlowGUI
+      img(class="img-responsive" src="./posts/assets/watlowgui.jpg", style="border: 1px solid black; width: 350px")
+    div(class="col-lg-8 col-xs-8")
+      p.
+        A GUI tool for communicating with Watlow EZ-Zone PM3 temperature controllers.
+        WatlowGUI allows users to set each controller to an individual temperature
+        or to set groups of controllers to the same termperature. It clearly displays
+        each setpoint and current temperature readings.
+      p.
+        The controllers can be configured manually or by using a configuration file.
+        Read about how to communicate with Watlow temperature controllers in this #[a(href="./posts/watlow.html") post].
+      p Written in Python using the PyQt5 GUI framework.
 
   div(class="row", style="padding: 20px 0px 20px 0px")
     div(class="col-lg-4 col-xs-4")
@@ -78,7 +104,7 @@ div(class="container")
         a fresh spot on the metal surface with each pulse. Read about it in this #[a(href="./posts/rod-rotator.html") post].
       p.
         The application runs on a Raspberry Pi 3 and is written in Python using the PyQt5 GUI framework.
-        Translation and rotation are handled by a stepper motor connected to a threaded rod and magnetic vacuum feedthrough
+        Translation and rotation are handled by a stepper motor connected to a threaded rod and magnetic vacuum feedthrough.
 
   div(class="row", style="padding: 20px 0px 0px 0px")
     div(class="col-lg-12 col-xs-12")
