@@ -2,13 +2,14 @@
 
 ## Backstory
 
-We have an instrument with 495,212 turbo pumps (slight exaggeration, there are only 12). For the most part,
+We have an instrument with 12 turbo pumps. That's right, 12! For the most part,
 our variable-temperature selected ion flow tube is separated into 'sections' by
 pneumatic gate valves that allow venting and for us to vent one section to atmosphere
 (to switch metal sources, maintenance/cleaning, etc.) while leaving others at high vacuum.
 In addition to knowing how hard turbos are working (e.g. power, temperature, rotation speed)
-when other sections of the instrument are vented, it's good practice to keep an eye on them whenever an experiment is taking place and gases are flowing. So, it can be frustrating
-when a turbopump in service doesn't have any control or readout beyond a simple on/off switch...
+when other sections of the instrument are vented, it's good practice to keep an eye
+on them whenever an experiment is taking place and gases are flowing. So, it can be
+frustrating when a turbopump in service doesn't have any control or readout beyond a simple on/off switch...
 like our Pfieffer Splitflow turbopump.
 
 Our Pfieffer Splitflow turbo was already equipped upon delivery with a Pfieffer TC 110
@@ -499,8 +500,7 @@ The readout displaying blank values while the pump is off.
 That's it! A basic pump readout that allows you to monitor a turbo pump using the
 Pfieffer Vacuum Protocol.
 
-Check out the complete source code [here.]()
-
 To expand on this project, one might consider adding support for reading any errors sent
 by the pump. Right now it is only programmed to display certain types of messages, none of
-which are error messages.
+which are error messages. Diagnosing errors in the current configuration requires
+interpreting the turbopump's LED pattern.

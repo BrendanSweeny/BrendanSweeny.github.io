@@ -1,4 +1,10 @@
 {
+  "watlow": {
+    "title": "How to Control a Watlow Temperature Controller with Python",
+    "author": "Brendan",
+    "date": "September 7th, 2019",
+    "image": "url(assets/watlow_header.jpg)"
+  },
   "clusterid": {
     "title": "Using Python to Identify Clusters in a Mass Spec",
     "author": "Brendan",
