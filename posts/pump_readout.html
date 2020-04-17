@@ -14,13 +14,14 @@
 <!-- Highlighting -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script></head><body><nav id="mainNav" class="navbar navbar-expand-lg navbar-light fixed-top"><div class="container"><a href="/index.html" class="navbar-brand">Brendan Sweeny</a><button type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler navbar-toggler-right">Menu<i class="fa fa-bars"></i></button><div id="navbarResponsive" class="collapse navbar-collapse"><ul class="navbar-nav ml-auto"><li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li><li class="nav-item"><a href="../blog.html" class="nav-link">Blog</a></li></ul></div></div></nav><p><em>Disclaimer: This post is for informational purposes only. Turbomolecular pumps are expensive and mistreatment can permanently damage them, sometimes violently. If this post inspires you to create something similar please proceed at your own risk.</em></p>
-<h2>Backstory</h2><p>We have an instrument with 495,212 turbo pumps (slight exaggeration, there are only 12). For the most part,
+<h2>Backstory</h2><p>We have an instrument with 12 turbo pumps. That&#39;s right, 12! For the most part,
 our variable-temperature selected ion flow tube is separated into &#39;sections&#39; by
 pneumatic gate valves that allow venting and for us to vent one section to atmosphere
 (to switch metal sources, maintenance/cleaning, etc.) while leaving others at high vacuum.
 In addition to knowing how hard turbos are working (e.g. power, temperature, rotation speed)
-when other sections of the instrument are vented, it&#39;s good practice to keep an eye on them whenever an experiment is taking place and gases are flowing. So, it can be frustrating
-when a turbopump in service doesn&#39;t have any control or readout beyond a simple on/off switch...
+when other sections of the instrument are vented, it&#39;s good practice to keep an eye
+on them whenever an experiment is taking place and gases are flowing. So, it can be
+frustrating when a turbopump in service doesn&#39;t have any control or readout beyond a simple on/off switch...
 like our Pfieffer Splitflow turbopump.</p>
 <p>Our Pfieffer Splitflow turbo was already equipped upon delivery with a Pfieffer TC 110
 Electronic Drive Unit and communicating with that unit is what this project is all about.</p>
@@ -420,10 +421,10 @@ void displayBlankValues() {
 <p>The readout displaying blank values while the pump is off.</p>
 <p>That&#39;s it! A basic pump readout that allows you to monitor a turbo pump using the
 Pfieffer Vacuum Protocol.</p>
-<p>Check out the complete source code <a href="">here.</a></p>
 <p>To expand on this project, one might consider adding support for reading any errors sent
 by the pump. Right now it is only programmed to display certain types of messages, none of
-which are error messages.</p><footer><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><ul class="list-inline text-center"><li class="list-inline-item"><a href="https://www.linkedin.com/in/brendansweeny/" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-linkedin fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://twitter.com/brendan_sweeny" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-twitter fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://scholar.google.com/citations?user=28fLASsAAAAJ&amp;hl=en" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i style="color: white;" class="ai ai-google-scholar fa-stack-1x ai-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://github.com/BrendanSweeny" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-github fa-stack-1x fa-inverse"></i></span></a></li></ul><p class="copyright text-muted">Copyright &copy; Brendan Sweeny 2018</p></div></div></div></footer><!-- Bootstrap core JavaScript -->
+which are error messages. Diagnosing errors in the current configuration requires
+interpreting the turbopump&#39;s LED pattern.</p><footer><div class="container"><div class="row"><div class="col-lg-8 col-md-10 mx-auto"><ul class="list-inline text-center"><li class="list-inline-item"><a href="https://www.linkedin.com/in/brendansweeny/" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-linkedin fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://twitter.com/brendan_sweeny" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-twitter fa-stack-1x fa-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://scholar.google.com/citations?user=28fLASsAAAAJ&amp;hl=en" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i style="color: white;" class="ai ai-google-scholar fa-stack-1x ai-inverse"></i></span></a></li><li class="list-inline-item"><a href="https://github.com/BrendanSweeny" target="_blank"><span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fab fa-github fa-stack-1x fa-inverse"></i></span></a></li></ul><p class="copyright text-muted">&copy; Brendan Sweeny 2020</p></div></div></div></footer><!-- Bootstrap core JavaScript -->
 <script src="../vendor/jquery/jquery.min.js"></script>
 <script src="../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- Custom scripts for this template -->
