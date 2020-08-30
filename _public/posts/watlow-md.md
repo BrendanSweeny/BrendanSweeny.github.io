@@ -1,5 +1,7 @@
 *Disclaimer: This post is for informational purposes only. If this post inspires you to create something similar please proceed at your own risk.*
 
+*If you want to skip straight to using the Python driver, it can be found here: [PyPI](https://pypi.org/project/pywatlow/)*
+
 Watlow EZ-Zone temperature controllers are staple in any laboratory application
 requiring a heating/cooling feedback loop. They are extremely flexible and reliable PID
 (proportional–integral–derivative) controllers.
@@ -10,7 +12,7 @@ an increasing amount of force to register a button press and change the setpoint
 often to the point that the buttons themselves start to crack and fall apart.
 This doesn't seen to be a unique problem as there are a few YouTube videos demonstrating
 how to clean the contacts and fix these buttons. However, I was pretty sure that
-they could be computer controlld and the whole button issue bypassed altogether.
+they could be computer controlled and the whole button issue bypassed altogether.
 This would also allow us to set all of our controllers to the same temperature
 with a single button press or change them individually.
 

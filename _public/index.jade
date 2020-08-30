@@ -80,18 +80,22 @@ div(class="container")
   
   div(class="row", style="padding: 20px 0px 20px 0px")
     div(class="col-lg-4 col-xs-4")
-      h3 WatlowGUI
+      h3 PyWatlow
       img(class="img-responsive" src="./posts/assets/watlowgui.jpg", style="border: 1px solid black; width: 350px")
     div(class="col-lg-8 col-xs-8")
       p.
-        A GUI tool for communicating with Watlow EZ-Zone PM3 temperature controllers.
+        PyWatlow is a Python driver for the Watlow EZ-Zone PM series of
+        temperature controllers. The driver makes accessible to developers the hundreds of parameters
+        outlined in the Watlow user manual. The driver can be found here: #[a(href="https://pypi.org/project/pywatlow/", target="_blank") Python Package Index]
+      p.
+        As an example, a GUI tool for communicating with Watlow EZ-Zone PM3 temperature controllers has been developed.
         WatlowGUI allows users to set each controller to an individual temperature
-        or to set groups of controllers to the same termperature. It clearly displays
+        or to set groups of controllers to the same temperature. It clearly displays
         each setpoint and current temperature readings.
       p.
         The controllers can be configured manually or by using a configuration file.
-        Read about how to communicate with Watlow temperature controllers in this #[a(href="./posts/watlow.html") post].
-      p Written in Python using the PyQt5 GUI framework.
+        Read about how to communicate with Watlow temperature controllers in this #[a(href="/posts/watlow") post].
+      p WatlowGUI is written in Python using the PyQt5 GUI framework.
 
   div(class="row", style="padding: 20px 0px 20px 0px")
     div(class="col-lg-4 col-xs-4")
